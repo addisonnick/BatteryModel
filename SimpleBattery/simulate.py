@@ -11,7 +11,7 @@ class LithiumIonBattery:
         self.maximum_capacity = 2.2  # [Amps * Hours]
         self.discharged_voltage = 3.0  # [Volts]
         self.charged_voltage = 4.2  # [Volts]
-        self.polarization_constant = 0.01  # [Amps / Hours]
+        self.polarization_constant = 0.0139  # [Amps / Hours]
 
 
 class Simulate:
@@ -31,8 +31,8 @@ class Simulate:
         self.charging_internal_resistance = 0.035  # [Ohms] Average
         self.discharging_internal_resistance = 0.030  # [Ohms] Average
         self.temperature = self.ambient_temperature  # [Degrees celsius]
-        self.A = 0.001
-        self.B = 2.5
+        self.A = 0.314
+        self.B = 40.71
 
         # Initial conditions
         # Short term variables
@@ -51,14 +51,14 @@ class Simulate:
         self.maximum_capacity = 2.2  # [Amps * Hours]
 
         self.time_t, self.voltage_t, self.current_t, self.capacity_t, self.SOC_t, self.SOP_t, \
-            self.cycle_t, self.DOD_t, self.SOH_t, self.maximum_capacity_t = [[] for i in range(10)]
+        self.cycle_c, self.DOD_c, self.SOH_c, self.maximum_capacity_c = [[] for i in range(10)]
 
     def save_cycle(self):
         print(f'Saving cycle. State of Health: {self.SOH * 100}%')
-        self.cycle_t.append(self.cycle)
-        self.DOD_t.append(self.DOD)
-        self.SOH_t.append(self.SOH)
-        self.maximum_capacity_t.append(self.maximum_capacity)
+        self.cycle_c.append(self.cycle)
+        self.DOD_c.append(self.DOD)
+        self.SOH_c.append(self.SOH)
+        self.maximum_capacity_c.append(self.maximum_capacity)
 
     def save_state(self):
         self.time_t.append(self.time)
@@ -85,8 +85,8 @@ class Simulate:
             ) -
             (
                     (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.maximum_capacity - self.capacity)) * self.capacity
-             ) +
+                     (self.maximum_capacity + self.capacity)) * self.capacity
+            ) +
             (
                     self.A * np.exp(-self.B * self.capacity)
             )
@@ -121,8 +121,8 @@ class Simulate:
     def run(self):
         self.save_cycle()
         self.save_state()
-        for cycle in range(self.cycles):
-            print(f'Simulating cycle {cycle+1}...')
+        for cycle in range(1,self.cycles+1):
+            print(f'Simulating cycle {cycle}...')
             self.cc_charge()
             self.cv_charge()
             self.cc_discharge()
@@ -132,15 +132,18 @@ class Simulate:
         self.plot()
 
     def cc_charge(self):
+        print(f'Charging with constant current ({self.charging_current}A)')
         self.current = self.charging_current
         while self.voltage < self.battery_specs.charged_voltage:
             self.update_parameters_cc_charge()
 
     def cv_charge(self):
+        print(f'Charging with constant voltage ({self.battery_specs.charged_voltage}V)')
         while self.current < self.cutoff_current:
             self.update_parameters_cv_charge()
 
     def cc_discharge(self):
+        print(f'Discharging with constant current ({self.discharging_current}A)')
         self.current = self.discharging_current
         while self.voltage > self.battery_specs.discharged_voltage:
             self.update_parameters_cc_discharge()
