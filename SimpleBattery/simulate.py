@@ -31,7 +31,7 @@ class Simulate:
         self.charging_internal_resistance = 0.035  # [Ohms] Average
         self.discharging_internal_resistance = 0.030  # [Ohms] Average
         self.temperature = self.ambient_temperature  # [Degrees celsius]
-        self.A = 0.314
+        self.A = -0.314
         self.B = 40.71
 
         # Initial conditions
@@ -51,7 +51,7 @@ class Simulate:
         self.maximum_capacity = 2.2  # [Amps * Hours]
 
         self.time_t, self.voltage_t, self.current_t, self.capacity_t, self.SOC_t, self.SOP_t, \
-        self.cycle_c, self.DOD_c, self.SOH_c, self.maximum_capacity_c = [[] for i in range(10)]
+            self.cycle_c, self.DOD_c, self.SOH_c, self.maximum_capacity_c = [[] for i in range(10)]
 
     def save_cycle(self):
         print(f'Saving cycle. State of Health: {self.SOH * 100}%')
@@ -69,23 +69,24 @@ class Simulate:
         self.SOP_t.append(self.SOP)
 
     def get_constant_voltage(self):
-        return self.battery_specs.charged_voltage + random.gauss(0, 0.05)
+        return self.battery_specs.charged_voltage + random.gauss(0, 0.005)
 
     def step(self):
         self.time += self.time_step
         self.capacity -= self.current * self.time_step
         self.SOC = self.capacity / self.battery_specs.maximum_capacity
+        self.save_state()
 
     def update_parameters_cc_charge(self):
         self.voltage = (
-            self.battery_specs.discharged_voltage -
+            self.battery_specs.charged_voltage -
             (
                     (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.capacity + 0.1 * self.maximum_capacity)) * self.current
-            ) -
+                     (self.capacity + 0.1 * self.maximum_capacity)) * 6
+            ) +
             (
                     (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.maximum_capacity + self.capacity)) * self.capacity
+                     (self.maximum_capacity - self.capacity)) * self.capacity
             ) +
             (
                     self.A * np.exp(-self.B * self.capacity)
@@ -99,6 +100,7 @@ class Simulate:
         self.voltage = self.get_constant_voltage()
         self.current = self.current + (0.1 * math.e ** self.current)
         self.step()
+        print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def update_parameters_cc_discharge(self):
         self.voltage = (
@@ -117,6 +119,7 @@ class Simulate:
         )
         self.current = self.current
         self.step()
+        print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def run(self):
         self.save_cycle()
