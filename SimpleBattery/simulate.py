@@ -31,8 +31,8 @@ class Simulate:
         self.charging_internal_resistance = 0.035  # [Ohms] Average
         self.discharging_internal_resistance = 0.030  # [Ohms] Average
         self.temperature = self.ambient_temperature  # [Degrees celsius]
-        self.A = -0.314
-        self.B = 40.71
+        self.A = -0.314  # Exponential constant A
+        self.B = 40.71  # Exponential constant B
 
         # Initial conditions
         # Short term variables
@@ -157,12 +157,20 @@ class Simulate:
         self.capacity_t = np.array(self.capacity_t)
         self.voltage_t = np.array(self.voltage_t)
         plt.figure()
-        plt.plot(self.capacity_t, self.voltage_t)
+        plt.plot(self.time_t, self.capacity_t)
+        plt.figure()
+        plt.plot(self.time_t, self.voltage_t)
         plt.show()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-    Simulation = Simulate()
+    parser.add_argument('--cycles', help='Number of charge/discharge cycles to run the simulation for', type=int)
+    parser.add_argument('--time_step_mins', help='The simulation time step, in minutes', type=float)
+    parser.add_argument('--charging_current', help='The charging current, in amps', type=float)
+    parser.add_argument('--discharging_current', help='The discharging current, in amps', type=float)
+    kwargs = vars(parser.parse_args())
+    for arg in [null_field for null_field in kwargs if kwargs[null_field] is None]:
+        kwargs.pop(arg)
+    Simulation = Simulate(**kwargs)
     Simulation.run()
