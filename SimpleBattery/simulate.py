@@ -18,7 +18,7 @@ class Simulate:
     def __init__(self, **kwargs):
         # Simulation Configuration
         self.cycles = kwargs.get('cycles', 1)
-        self.time_step = kwargs.get('time_step_mins', 5.0)/60.0  # [Hours]
+        self.time_step = kwargs.get('time_step_mins', 0.5)/60.0  # [Hours]
         self.charging_current = kwargs.get('charging_current', -1.1)  # [Amps]
         self.discharging_current = kwargs.get('discharging_current', 1.1)  # [Amps]
 
@@ -75,9 +75,9 @@ class Simulate:
         self.time += self.time_step
         self.capacity -= self.current * self.time_step
         self.SOC = self.capacity / self.battery_specs.maximum_capacity
-        self.save_state()
 
     def update_parameters_cc_charge(self):
+        self.step()
         self.voltage = (
             self.battery_specs.charged_voltage -
             (
@@ -93,32 +93,33 @@ class Simulate:
             )
         )
         self.current = self.current
-        self.step()
+        self.save_state()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def update_parameters_cv_charge(self):
         self.voltage = self.get_constant_voltage()
-        self.current = self.current + (0.1 * math.e ** self.current)
+        self.current = self.current + (0.28 * math.e ** (self.current*3.2))
         self.step()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def update_parameters_cc_discharge(self):
+        self.step()
         self.voltage = (
-            self.battery_specs.charged_voltage -
-            (
-                    (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.maximum_capacity - self.capacity)) * self.current
-            ) -
-            (
-                    (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.maximum_capacity - self.capacity)) * self.capacity
-             ) +
-            (
-                    self.A * np.exp(-self.B * self.capacity)
-            )
+                self.battery_specs.charged_voltage -
+                (
+                        (self.battery_specs.polarization_constant * self.maximum_capacity /
+                         (self.capacity + 0.1 * self.maximum_capacity)) * 6
+                ) +
+                (
+                        (self.battery_specs.polarization_constant * self.maximum_capacity /
+                         (self.maximum_capacity - self.capacity)) * self.capacity
+                ) +
+                (
+                        self.A * np.exp(-self.B * self.capacity)
+                )
         )
         self.current = self.current
-        self.step()
+        self.save_state()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def run(self):
@@ -153,9 +154,10 @@ class Simulate:
 
     def plot(self):
         self.time_t = np.array(self.time_t)
+        self.capacity_t = np.array(self.capacity_t)
         self.voltage_t = np.array(self.voltage_t)
         plt.figure()
-        plt.plot(self.time_t, self.voltage_t)
+        plt.plot(self.capacity_t, self.voltage_t)
         plt.show()
 
 
