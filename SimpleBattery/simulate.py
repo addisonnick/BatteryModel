@@ -69,7 +69,7 @@ class Simulate:
         self.SOP_t.append(self.SOP)
 
     def get_constant_voltage(self):
-        return self.battery_specs.charged_voltage + random.gauss(0, 0.005)
+        return self.battery_specs.charged_voltage + random.gauss(0, 0.0005)
 
     def step(self):
         self.time += self.time_step
@@ -82,7 +82,7 @@ class Simulate:
             self.battery_specs.charged_voltage -
             (
                     (self.battery_specs.polarization_constant * self.maximum_capacity /
-                     (self.capacity + 0.1 * self.maximum_capacity)) * 6
+                     (self.capacity + 0.1 * self.maximum_capacity)) * 7
             ) +
             (
                     (self.battery_specs.polarization_constant * self.maximum_capacity /
@@ -97,15 +97,16 @@ class Simulate:
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def update_parameters_cv_charge(self):
+        self.step()
         self.voltage = self.get_constant_voltage()
         self.current = self.current + (0.28 * math.e ** (self.current*3.2))
-        self.step()
+        self.save_state()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
 
     def update_parameters_cc_discharge(self):
         self.step()
         self.voltage = (
-                self.battery_specs.charged_voltage -
+                self.battery_specs.charged_voltage - 0.3 -
                 (
                         (self.battery_specs.polarization_constant * self.maximum_capacity /
                          (self.capacity + 0.1 * self.maximum_capacity)) * 6
@@ -156,10 +157,16 @@ class Simulate:
         self.time_t = np.array(self.time_t)
         self.capacity_t = np.array(self.capacity_t)
         self.voltage_t = np.array(self.voltage_t)
+        # plt.figure()
+        # plt.plot(self.time_t, self.capacity_t)
+        # plt.figure()
+        # plt.plot(self.time_t, self.voltage_t)
+        # plt.show()
         plt.figure()
-        plt.plot(self.time_t, self.capacity_t)
-        plt.figure()
-        plt.plot(self.time_t, self.voltage_t)
+        plt.title('One Cycle Capacity-Voltage Phase Space')
+        plt.xlabel('Capacity (Ah)')
+        plt.ylabel('Voltage (V)')
+        plt.plot(self.capacity_t, self.voltage_t)
         plt.show()
 
 
