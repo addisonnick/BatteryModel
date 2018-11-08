@@ -80,7 +80,7 @@ class Simulate:
         n = 1  # for Li-ion battery
         F = 96485.33289  # Faraday's Constant
         if n_p == 'p':  # p
-            A_k = [
+            A_k = np.array([
                 -33642.23,
                 0.11,
                 23506.89,
@@ -94,15 +94,15 @@ class Simulate:
                 283423.47,
                 -163020.34,
                 -470297.35
-            ]  # Units: J/mol
+            ])  # Units: J/mol
         else:  # n
-            A_k = [
+            A_k = np.array([
                 86.19
-            ]  # Units: J/mol
+            ])  # Units: J/mol
 
-        summation = []
+        summation = np.empty(len(A_k))
         for k in range(len(A_k)):
-            summation[k] = A_k * ((2 * x - 1) ** (k + 1)) - ((2 * x * k * (1 - x)) / (2 * x - 1) ** (1 - k))
+            summation[k] = A_k[k] * ((2 * x - 1) ** (k + 1)) - ((2 * x * k * (1 - x)) / (2 * x - 1) ** (1 - k))
 
         V = (1 / (n * F)) * np.sum(summation)
 
