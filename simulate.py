@@ -105,7 +105,7 @@ class Simulate:
             summation[k] = A_k[k] * ((2 * x - 1) ** (k + 1)) - ((2 * x * k * (1 - x)) / (2 * x - 1) ** (1 - k))
 
         V = (1 / (n * F)) * np.sum(summation)
-
+        print(f'V_INT ({n_p})={V}')
         return V
 
     def V_U(self, n_p):
@@ -114,22 +114,24 @@ class Simulate:
         n = 1  # for Li-ion battery
         T = self.temperature + 273.15
         if n_p == 'p':  # p
-            x_p = self.capacity
+            x_p = 1 - (0.6 * self.capacity / self.maximum_capacity)
             U_0 = 4.03  # Units: Volts
             x_s = x_p
             V_INT = self.V_INT('p', x_p)
         else:  # n
-            x_n = self.capacity
+            x_n = 0.6 * self.capacity / self.maximum_capacity
             U_0 = 0.01  # Units: Volts
             x_s = x_n
-            V_INT = self.V_INT('p', x_n)
+            V_INT = self.V_INT('n', x_n)
         V = U_0 + (R*T)/(n*F) * math.log((1 - x_s)/x_s) + V_INT
+        print(f'V_U ({n_p})={V}')
         return V
 
     def V_0(self, current):
-        i_app = current
+        i_app = abs(current)
         R_0 = 0.085
         V = i_app * R_0
+        print(f'V_0={V}')
         return V
 
     def V_eta(self, n_p):
@@ -140,23 +142,25 @@ class Simulate:
         if n_p == 'p':  # p
             S = 2 * 10**-4  # m^2
             k = 2 * 10**4  # A/m^2
-            x_s = self.capacity
+            x_s = 1 - (0.6 * self.capacity / self.maximum_capacity)
         else:  # n
             S = 2 * 10 ** -4  # m^2
             k = 2 * 10 ** 4  # A/m^2
-            x_s = self.capacity
-        J = self.current / S
+            x_s = 0.6 * self.capacity / self.maximum_capacity
+        J = abs(self.current) / S
         J_0 = k * ((1 - x_s)**alpha) * x_s**(1 - alpha)
         V = (R*T)/(F*alpha) * math.asinh(J/(2 * J_0))
+        print(f'V_eta ({n_p})={V}')
         return V
 
     def V(self):
+        print('-----')
         V = self.V_U('p') - self.V_U('n') - self.V_0(self.current) - self.V_eta('p') - self.V_eta('n')
         return V
 
     def update_parameters_cc_charge(self):
         self.step()
-        self.voltage = self.V()
+        self.voltage = 0.68*self.V() + 1.6
         self.current = self.current  # Constant
         self.save_state()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
@@ -170,7 +174,7 @@ class Simulate:
 
     def update_parameters_cc_discharge(self):
         self.step()
-        self.voltage = self.V()
+        self.voltage = 0.68*self.V() + 1.4
         self.current = self.current  # Constant
         self.save_state()
         print(f'Voltage: {self.voltage}; Capacity: {self.capacity}')
